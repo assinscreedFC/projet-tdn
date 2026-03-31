@@ -1,0 +1,8 @@
+output/cereales_clean.RData
+output/res_acp.RData
+output/res_cah.RData
+output/res_kmeans.RData
+render_rapport.R
+*.log
+.Rhistory
+.RData
