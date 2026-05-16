@@ -1,0 +1,522 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\usepackage[french]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{float}
+\usepackage{graphicx}
+\renewcommand{\contentsname}{Sommaire}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Projet TDN - Analyse des céréales},
+  pdfauthor={Binome 5},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Projet TDN - Analyse des céréales}
+\author{Binome 5}
+\date{2025-2026}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+\newpage
+\listoffigures
+\newpage
+
+\section{Introduction}\label{introduction}
+
+Ce rapport présente l'analyse d'un jeu de données portant sur 77
+céréales de petit-déjeuner commercialisées aux États-Unis. L'objectif
+est de comprendre comment ces céréales se différencient sur le plan
+nutritionnel, et si on peut identifier des groupes homogènes parmi
+elles.
+
+On dispose de 16 variables par céréale : des informations
+nutritionnelles (calories, protéines, graisses, etc.), des variables de
+conditionnement (poids, taille de portion), et des métadonnées
+(fabricant, type de consommation, note de satisfaction). Les variables
+sont mesurées dans des unités très différentes (Kcal, grammes,
+milligrammes, note sur 100), ce qui oriente directement le choix des
+méthodes.
+
+L'approche retenue combine une ACP normée pour reduire la
+dimensionnalité et visualiser les relations entre variables, suivie de
+deux méthodes de classification (CAH et K-means) pour regrouper les
+céréales en profils nutritionnels distincts.
+
+\section{Description des données}\label{description-des-donnuxe9es}
+
+\subsection{Presentation du jeu de
+données}\label{presentation-du-jeu-de-donnuxe9es}
+
+Le fichier \texttt{276-cereals.txt} contient 77 céréales décrites par 16
+variables. Après examen de la structure, on distingue trois types de
+variables :
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Identifiant} : NAME (nom de la céréale)
+\item
+  \textbf{Variables qualitatives} : MANUF (fabricant, 7 modalités : A,
+  G, K, N, P, Q, R) et TYPE (C = consommation froide, H = chaude)
+\item
+  \textbf{Variables quantitatives} (13) : CALORIES, PROTEIN, FAT,
+  SODIUM, FIBER, CARBO, SUGARS, POTASS, VITAMINS, SHELF, WEIGHT, CUPS,
+  RATING
+\end{itemize}
+
+La répartition est déséquilibrée : 74 céréales froides contre seulement
+3 chaudes. Les fabricants Kellogg's (K, 23 céréales) et General Mills
+(G, 22) dominent le jeu de données.
+
+\subsection{Pretraitement}\label{pretraitement}
+
+Certaines valeurs sont codées -1 dans le fichier original. Après
+vérification, il s'agit de données manquantes (une valeur négative n'a
+pas de sens pour des contenus nutritionnels). On a identifié 4 valeurs
+manquantes : 2 pour POTASS, 1 pour CARBO, 1 pour SUGARS.
+
+On a choisi de les imputer par la médiane de chaque variable. La médiane
+est plus robuste que la moyenne face aux valeurs extrêmes, ce qui est
+pertinent ici puisque certaines variables comme FIBER ou POTASS
+présentent des distributions très asymétriques.
+
+\subsection{Définition des roles pour
+l'ACP}\label{duxe9finition-des-roles-pour-lacp}
+
+Pour l'ACP, on a sélectionné 9 variables actives correspondant aux
+caractéristiques nutritionnelles pures : CALORIES, PROTEIN, FAT, SODIUM,
+FIBER, CARBO, SUGARS, POTASS et VITAMINS.
+
+Les variables SHELF, WEIGHT, CUPS et RATING sont traitées comme
+variables supplémentaires quantitatives : elles ne participent pas à la
+construction des axes mais sont projetées à posteriori pour enrichir
+l'interprétation. MANUF et TYPE sont des variables supplémentaires
+qualitatives.
+
+Ce choix se justifie : WEIGHT et CUPS décrivent le conditionnement, pas
+la composition nutritionnelle. RATING est une note calculée par Consumer
+Reports, donc une variable derivée que l'on préfère analyser en
+complément afin d'examiner sa position par rapport aux axes
+nutritionnels.
+
+\section{Statistiques descriptives}\label{statistiques-descriptives}
+
+\subsection{Analyse univariée}\label{analyse-univariuxe9e}
+
+Le tableau ci-dessous résume les principales statistiques des variables
+actives :
+
+\begin{longtable}[]{@{}lrrrr@{}}
+\caption{Statistiques des variables actives}\tabularnewline
+\toprule\noalign{}
+& Moyenne & Mediane & Ecart.type & Skewness \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+& Moyenne & Mediane & Ecart.type & Skewness \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+CALORIES & 106.9 & 110.0 & 19.5 & -0.44 \\
+PROTEIN & 2.5 & 3.0 & 1.1 & 0.73 \\
+FAT & 1.0 & 1.0 & 1.0 & 1.14 \\
+SODIUM & 159.7 & 180.0 & 83.8 & -0.56 \\
+FIBER & 2.2 & 2.0 & 2.4 & 2.38 \\
+CARBO & 14.8 & 14.5 & 3.9 & 0.11 \\
+SUGARS & 7.0 & 7.0 & 4.3 & 0.04 \\
+POTASS & 98.4 & 90.0 & 69.5 & 1.40 \\
+VITAMINS & 28.2 & 25.0 & 22.3 & 2.42 \\
+\end{longtable}
+
+Quelques constats : FIBER (skewness = 2.38) et VITAMINS (2.42) sont très
+asymetriques à droite, ce qui signifie que la plupart des céréales ont
+peu de fibres et de vitamines, avec quelques exceptions notables. SUGARS
+est à peu près symétrique (skewness = 0.04), les céréales se
+répartissent assez uniformement entre peu et très sucrées.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.9\linewidth]{output/figures/01_boxplots_actives} 
+
+}
+
+\caption{Boxplots des variables actives (centrees-reduites)}\label{fig:boxplots}
+\end{figure}
+
+Les boxplots montrent plusieurs outliers, en particulier pour FIBER et
+POTASS (les céréales All-Bran) et pour VITAMINS (les céréales ``Total''
+enrichies a 100\% des apports). On conserve ces observations car elles
+représentent de vraies céréales du marché, même si elles sont atypiques.
+
+\subsection{Analyse bivariée}\label{analyse-bivariuxe9e}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.8\linewidth]{output/figures/03_heatmap_correlation} 
+
+}
+
+\caption{Matrice de correlation des variables actives}\label{fig:heatmap}
+\end{figure}
+
+La matrice de corrélation révèle une structure intéressante. La
+corrélation la plus forte est entre FIBER et POTASS (r = 0.91). Ce lien
+est logique d'un point de vue nutritionnel : les céréales complètes,
+riches en fibres, conservent les minéraux du grain, dont le potassium.
+On note aussi que CALORIES est corrélé positivement à SUGARS (r = 0.57)
+et FAT (r = 0.50), ce qui reflète simplement le fait que sucres et
+graisses sont des sources caloriques.
+
+CARBO est corrélé négativement à SUGARS (r = -0.47), ce qui peut sembler
+contre-intuitif. En fait, les céréales riches en glucides complexes
+(amidon) sont souvent moins sucrées : les sucres simples remplacent
+l'amidon, ils ne s'y ajoutent pas.
+
+L'existence de ces corrélations justifie le recours à l'ACP : les 9
+variables ne sont pas indépendantes et une réduction de dimension
+permettra de mieux visualiser cette structure.
+
+\section{Analyse en composantes
+principales}\label{analyse-en-composantes-principales}
+
+\subsection{Choix de l'ACP normée}\label{choix-de-lacp-normuxe9e}
+
+Les variables étant mesurées dans des unités différentes (Kcal, grammes,
+milligrammes, note), une ACP non normée donnerait un poids
+disproportionné aux variables à forte variance comme SODIUM (écart-type
+= 84) ou POTASS (écart-type = 69) par rapport à FAT (écart-type = 1).
+L'ACP normée, qui travaille sur la matrice de corrélation après
+centrage-réduction, traite toutes les variables de manière équitable
+
+\subsection{Valeurs propres et nombre
+d'axes}\label{valeurs-propres-et-nombre-daxes}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.75\linewidth]{output/figures/06_scree_plot} 
+
+}
+
+\caption{Eboulis des valeurs propres}\label{fig:scree}
+\end{figure}
+
+Le critère de Kaiser (valeurs propres \textgreater{} 1) conduit à
+retenir 4 axes, qui captent 82.1\% de l'inertie totale. Les deux
+premiers axes concentrent à eux seuls 52.4\% de l'information, ce qui
+est correct pour 9 variables. Le scree plot ne montre pas de coude très
+marqué mais une décroissance progressive. On se concentrera sur le plan
+factoriel (1,2) pour les interprétations principales, en gardant à
+l'esprit que les axes 3 et 4 portent encore de l'information non
+négligeable.
+
+\subsection{Cercle des corrélations}\label{cercle-des-corruxe9lations}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.8\linewidth]{output/figures/07_cercle_correlations_12} 
+
+}
+
+\caption{Cercle des corrélations (axes 1-2)}\label{fig:cercle}
+\end{figure}
+
+L'axe 1 (29.4\% d'inertie) est principalement construit par FIBER et
+POTASS du côté positif. C'est un axe qu'on peut interpréter comme un
+gradient de ``richesse en fibres''. Les céréales à droite du plan sont
+riches en fibres et en potassium, celles à gauche en sont pauvres.
+
+L'axe 2 (23.0\%) oppose CALORIES, FAT et SUGARS (en haut) a un pole plus
+neutre (en bas). C'est un axe de ``densite calorique'' : les céréales en
+haut du plan sont plus caloriques, plus grasses et plus sucrées.
+
+On remarque que SODIUM et VITAMINS sont mal représentés sur ce plan
+(vecteurs courts), ce qui confirme que les axes 3 et 4 capturent
+l'information de ces variables. CARBO est dans le cadran bas-gauche,
+opposé à SUGARS : cela confirme l'opposition glucides complexes / sucres
+simples vue dans les corrélations.
+
+\subsection{Carte des individus et
+biplot}\label{carte-des-individus-et-biplot}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.85\linewidth]{output/figures/10_biplot} 
+
+}
+
+\caption{Biplot - individus et variables}\label{fig:biplot}
+\end{figure}
+
+Le biplot permet de voir les céréales et les variables en même temps.
+Les trois céréales All-Bran (100\% Bran, All-Bran, All-Bran with Extra
+Fiber) sont clairement isolées à droite, du côté des fibres. A l'opposé,
+on trouve Rice Chex, Corn Chex et d'autres céréales à base de riz ou
+maïs, pauvres en fibres.
+
+En haut du plan, les céréales sucrées (Cap'n'Crunch, Froot Loops, Lucky
+Charms) s'alignent avec les vecteurs SUGARS et CALORIES. En bas, les
+céréales peu caloriques comme Puffed Rice ou Shredded Wheat.
+
+\subsection{Variables
+supplémentaires}\label{variables-suppluxe9mentaires}
+
+La variable RATING se projette avec une coordonnée positive sur l'axe 1
+(+0.62) et négative sur l'axe 2 (-0.72). Autrement dit, les céréales
+bien notées par Consumer Reports sont celles riches en fibres et pauvres
+en calories/sucres. La note reflète donc assez fidèlement la ``qualité
+nutritionnelle'' telle que définie par les axes de l'ACP.
+
+Pour les fabricants, Nabisco (N) se positionne clairement dans le
+quadrant ``fibres élevées, peu caloriques'', ce qui est cohérent avec
+leur gamme Shredded Wheat. General Mills (G) et Kellogg's (K) occupent
+des positions plus centrales, avec des gammes variées.
+
+Les céréales chaudes (H, 3 seulement) se projettent à l'écart des
+froides, mais l'effectif est trop faible pour en tirer des conclusions
+solides.
+
+\section{Classification}\label{classification}
+
+\subsection{CAH - Methode de Ward}\label{cah---methode-de-ward}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.95\linewidth]{output/figures/12_dendrogramme} 
+
+}
+
+\caption{Dendrogramme (CAH, Ward, distance euclidienne)}\label{fig:dendrogramme}
+\end{figure}
+
+On applique la CAH avec la distance euclidienne sur les données
+centrées-réduites et le critère de Ward, qui minimise l'augmentation
+d'inertie intra-classe à chaque fusion. Ce critère est cohérent avec la
+métrique euclidienne utilisée et tend à produire des clusters de taille
+comparable.
+
+Le dendrogramme suggère une partition en 3 classes, avec un saut
+d'inertie visible entre 3 et 2 clusters. La silhouette moyenne pour k=3
+est de 0.21, ce qui est modeste. Pour comparaison, k=2 donne une
+silhouette de 0.45, plus nette, mais on perd l'information sur le groupe
+des céréales très riches en fibres.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.85\linewidth]{output/figures/14_profils_cah} 
+
+}
+
+\caption{Profils moyens des 3 clusters (CAH, donnees centrees-reduites)}\label{fig:profils-cah}
+\end{figure}
+
+Les trois clusters obtenus sont :
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Cluster 1} (3 céréales) : profil ``haute fibre''. FIBER et
+  POTASS très élevés, CALORIES et CARBO faibles. Ce sont les trois
+  céréales All-Bran.
+\item
+  \textbf{Cluster 2} (40 céréales) : profil ``sucre/calorique''. SUGARS
+  et CALORIES au-dessus de la moyenne, FIBER et CARBO en dessous.
+\item
+  \textbf{Cluster 3} (34 céréales) : profil ``modéré''. Peu de sucre,
+  peu de gras, CARBO élevé. Ce sont des céréales de type classique (Corn
+  Flakes, Rice Krispies, etc.).
+\end{itemize}
+
+Le cluster 1 ne contient que 3 individus, ce qui le rend fragile. Ce
+sont en réalite des outliers nutritionnels et pas un ``type'' de céréale
+au sens commercial du terme. Mais leur séparation est nette et
+reproductible.
+
+\subsection{K-means}\label{k-means}
+
+On applique le K-means avec le même nombre de clusters (k=3) pour
+comparer. On utilise nstart=25 pour atténuer l'effet de l'initialisation
+aléatoire (l'algorithme est non déterministe, contrairement à la CAH).
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.85\linewidth]{output/figures/19_acp_clusters_kmeans} 
+
+}
+
+\caption{Projection des clusters K-means sur le plan ACP}\label{fig:clusters-acp}
+\end{figure}
+
+Les clusters K-means sont très similaires à ceux de la CAH. La
+projection sur le plan ACP montre une bonne séparation : le cluster
+``haute fibre'' est isolé à droite, le cluster ``sucre'' est en haut et
+le cluster ``modere'' en bas à gauche.
+
+\subsection{Comparaison CAH vs
+K-means}\label{comparaison-cah-vs-k-means}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.75\linewidth]{output/figures/21_silhouette_kmeans} 
+
+}
+
+\caption{Silhouette des clusters K-means}\label{fig:silhouette}
+\end{figure}
+
+L'indice de Rand entre les deux partitions est de 0.882, ce qui indique
+un bon accord. La pureté est de 0.935 : 93.5\% des individus sont
+classés dans le même groupe par les deux méthodes. Les quelques
+divergences concernent des céréales à la frontière entre les clusters
+``sucre'' et ``modere'', ce qui est attendu puisque cette frontière est
+moins nette que la séparation avec le groupe haute fibre.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.65\linewidth]{output/figures/22_rating_par_cluster} 
+
+}
+
+\caption{RATING par cluster (K-means)}\label{fig:rating-clusters}
+\end{figure}
+
+Le RATING moyen par cluster confirme l'interprétation : les céréales
+haute fibre (cluster 3) ont un RATING moyen de 73.8, contre 51.4 pour
+les modérées et 33.3 pour les sucrées. La note Consumer Reports pénalise
+les céréales sucrées et valorise les céréales riches en fibres, ce qui
+est cohérent avec les recommandations diététiques actuelles.
+
+\section{Conclusion}\label{conclusion}
+
+L'analyse du jeu de données ``276 céréales'' a permis de mettre en
+évidence deux axes de variabilité principaux : la teneur en fibres (et
+potassium associe) d'une part, et la densité calorique (calories,
+sucres, graisses) d'autre part. Ces deux axes suffisent à expliquer plus
+de la moitié de la variance totale.
+
+La classification en 3 groupes, obtenue de manière cohérente par CAH et
+K-means (Rand = 0.88), distingue des céréales ``sucrées/caloriques'' (le
+groupe le plus nombreux), des céréales ``modérées/classiques'', et un
+petit groupe de céréales très riches en fibres. Ce dernier groupe est
+composé uniquement de céréales All-Bran et constitue une niche
+nutritionnelle.
+
+Un resultat à noter : la variable RATING (non utilisée dans la
+construction des axes) se projette presque parfaitement dans le plan
+factoriel. Elle est positivement associée aux fibres et négativement aux
+sucres, ce qui suggère que Consumer Reports évalue la qualité
+nutritionnelle selon des critères proches de ceux identifiés par l'ACP.
+
+Une limite de cette analyse : la partition en 3 clusters a une
+silhouette moyenne modeste (0.22), et le groupe haute fibre ne contient
+que 3 individus. Une partition en 2 clusters serait plus robuste
+statistiquement, mais moins informative. Le choix de k=3 est un
+compromis entre stabilité et finesse d'interprétation.
+
+\newpage
+
+\section{Annexe : code R}\label{annexe-code-r}
+
+Le code complet est organisé en 6 scripts exécutables séquentiellement
+via \texttt{00\_main.R}. Les packages utilisés sont FactoMineR,
+factoextra, corrplot, cluster et moments.
+
+Les scripts sont disponibles dans le dossier \texttt{scripts/} du projet
+:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{01\_pretraitement.R} : chargement, gestion des NA, imputation
+  par la médiane
+\item
+  \texttt{02\_stats\_descriptives.R} : statistiques univariées et
+  bivariées
+\item
+  \texttt{03\_acp.R} : ACP normée avec FactoMineR
+\item
+  \texttt{04\_cah.R} : CAH (Ward, distance euclidienne)
+\item
+  \texttt{05\_kmeans.R} : K-means et comparaison avec la CAH
+\item
+  \texttt{06\_synthese.R} : projections et interprétation finale
+\end{itemize}
+
+\end{document}
